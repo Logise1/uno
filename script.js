@@ -219,7 +219,8 @@ function updateHostUI() {
                 }
 
                 cardEl.style.setProperty('--start-transform', startTransform);
-                cardEl.classList.add('absolute', 'top-0', 'left-0', 'anim-drop-in');
+                cardEl.classList.remove('relative');
+                cardEl.classList.add('anim-drop-in');
                 pileDiv.appendChild(cardEl);
 
                 if (i === roomData.discardPile.length - 1) sfx.place();
@@ -513,148 +514,169 @@ async function playerPlaceCard() {
 }
 
 async function executePlayCard(card, chosenColor) {
-    document.getElementById('btn-draw').classList.add('hidden');
-    if (selectedCardElement) {
-        selectedCardElement.classList.remove('card-selected');
-        selectedCardElement.classList.add('anim-fly-up');
-    }
-    await new Promise(r => setTimeout(r, 600));
-
-    const docRef = getRoomDocRef(currentRoomId);
-    const snap = await getDoc(docRef);
-    if (!snap.exists()) return;
-    let data = snap.data();
-
-    const myCards = data.players[myPlayerId].cards;
-    const cardIndex = myCards.findIndex(c => c.id === card.id);
-    if (cardIndex === -1) return;
-
-    const playedCard = myCards.splice(cardIndex, 1)[0];
-    data.discardPile.push(playedCard);
-    data.currentColor = chosenColor || '';
-    data.lastPlayerId = myPlayerId; // Set last player for hit animation
-
-    if (data.gameType === 'uno') {
-        if (card.value === 'Reversa') data.direction *= -1;
-        if (card.value === '+2') data.drawStack += 2;
-        if (card.value === '+4') data.drawStack += 4;
-
-        let skips = 1;
-        if (card.value === 'Bloqueo') skips = 2;
-        let activeCount = Object.values(data.players).filter(p => p.joined).length;
-        if (activeCount === 2 && card.value === 'Reversa') skips = 2;
-
-        for (let i = 0; i < skips; i++) {
-            data.turn = getNextAliveTurn(data.turn, data.direction, data.players);
+    try {
+        document.getElementById('btn-draw').classList.add('hidden');
+        if (selectedCardElement) {
+            selectedCardElement.classList.remove('card-selected');
+            selectedCardElement.classList.add('anim-fly-up');
         }
+        await new Promise(r => setTimeout(r, 600));
 
-        if (myCards.length === 0) data.winner = myPlayerId;
-    }
-    else if (data.gameType === 'ek') {
-        if (card.type === 'ataque') {
-            data.turn = getNextAliveTurn(data.turn, 1, data.players);
-            data.activeTurns = 2;
-        } else if (card.type === 'saltar') {
-            data.activeTurns--;
-            if (data.activeTurns <= 0) {
-                data.turn = getNextAliveTurn(data.turn, 1, data.players);
-                data.activeTurns = 1;
+        const docRef = getRoomDocRef(currentRoomId);
+        const snap = await getDoc(docRef);
+        if (!snap.exists()) return;
+        let data = snap.data();
+
+        data.discardPile = data.discardPile || [];
+        data.deck = data.deck || [];
+
+        const myCards = data.players[myPlayerId].cards || [];
+        const cardIndex = myCards.findIndex(c => c.id === card.id);
+        if (cardIndex === -1) return;
+
+        const playedCard = myCards.splice(cardIndex, 1)[0];
+        data.discardPile.push(playedCard);
+        data.currentColor = chosenColor || '';
+        data.lastPlayerId = myPlayerId; // Set last player for hit animation
+
+        if (data.gameType === 'uno') {
+            if (card.value === 'Reversa') data.direction = (data.direction || 1) * -1;
+            if (card.value === '+2') data.drawStack = (data.drawStack || 0) + 2;
+            if (card.value === '+4') data.drawStack = (data.drawStack || 0) + 4;
+
+            let skips = 1;
+            if (card.value === 'Bloqueo') skips = 2;
+            let activeCount = Object.values(data.players).filter(p => p.joined).length;
+            if (activeCount === 2 && card.value === 'Reversa') skips = 2;
+
+            for (let i = 0; i < skips; i++) {
+                data.turn = getNextAliveTurn(data.turn, data.direction || 1, data.players);
             }
-        } else if (card.type === 'barajar') {
-            data.deck.sort(() => Math.random() - 0.5);
+
+            if (myCards.length === 0) data.winner = myPlayerId;
+        }
+        else if (data.gameType === 'ek') {
+            if (card.type === 'ataque') {
+                data.turn = getNextAliveTurn(data.turn, 1, data.players);
+                data.activeTurns = 2;
+            } else if (card.type === 'saltar') {
+                data.activeTurns = (data.activeTurns || 1) - 1;
+                if (data.activeTurns <= 0) {
+                    data.turn = getNextAliveTurn(data.turn, 1, data.players);
+                    data.activeTurns = 1;
+                }
+            } else if (card.type === 'barajar') {
+                data.deck.sort(() => Math.random() - 0.5);
+            }
+
+            let aliveCount = Object.values(data.players).filter(p => p.joined && p.alive).length;
+            if (aliveCount <= 1) data.winner = myPlayerId;
         }
 
-        let aliveCount = Object.values(data.players).filter(p => p.joined && p.alive).length;
-        if (aliveCount <= 1) data.winner = myPlayerId;
+        await updateDoc(docRef, {
+            discardPile: data.discardPile, deck: data.deck,
+            [`players.${myPlayerId}.cards`]: myCards,
+            turn: data.turn, direction: data.direction || 1,
+            drawStack: data.drawStack || 0, currentColor: data.currentColor || "",
+            activeTurns: data.activeTurns || 1, winner: data.winner !== undefined ? data.winner : null,
+            lastPlayerId: data.lastPlayerId
+        });
+        selectedCardData = null; selectedCardElement = null;
+    } catch (e) {
+        console.error("Error al jugar carta", e);
+        showAlert("Error de conexión al jugar: " + e.message);
+        document.getElementById('btn-draw').classList.remove('hidden');
     }
-
-    await updateDoc(docRef, {
-        discardPile: data.discardPile, deck: data.deck,
-        [`players.${myPlayerId}.cards`]: myCards,
-        turn: data.turn, direction: data.direction,
-        drawStack: data.drawStack, currentColor: data.currentColor,
-        activeTurns: data.activeTurns, winner: data.winner,
-        lastPlayerId: data.lastPlayerId
-    });
-    selectedCardData = null; selectedCardElement = null;
 }
 
 async function playerDrawCard() {
-    if (roomData.turn !== myPlayerId) return;
-    document.getElementById('btn-draw').classList.add('hidden');
-    document.getElementById('btn-place').classList.add('hidden');
+    try {
+        if (roomData.turn !== myPlayerId) return;
+        document.getElementById('btn-draw').classList.add('hidden');
+        document.getElementById('btn-place').classList.add('hidden');
 
-    const docRef = getRoomDocRef(currentRoomId);
-    const snap = await getDoc(docRef);
-    if (!snap.exists()) return;
-    let data = snap.data();
+        const docRef = getRoomDocRef(currentRoomId);
+        const snap = await getDoc(docRef);
+        if (!snap.exists()) return;
+        let data = snap.data();
 
-    let amountToDraw = 1;
-    if (data.gameType === 'uno' && data.drawStack > 0) {
-        amountToDraw = data.drawStack;
-        data.drawStack = 0;
-    }
+        data.deck = data.deck || [];
+        data.discardPile = data.discardPile || [];
+        data.players[myPlayerId].cards = data.players[myPlayerId].cards || [];
 
-    let showMsg = null;
+        let amountToDraw = 1;
+        if (data.gameType === 'uno' && data.drawStack > 0) {
+            amountToDraw = data.drawStack;
+            data.drawStack = 0;
+        }
 
-    for (let i = 0; i < amountToDraw; i++) {
-        if (data.deck.length === 0) {
-            if (data.discardPile.length > 1) {
-                const topNode = data.discardPile.pop();
-                data.deck = [...data.discardPile].sort(() => Math.random() - 0.5);
-                data.discardPile = [topNode];
-            } else {
-                break;
+        let showMsg = null;
+
+        for (let i = 0; i < amountToDraw; i++) {
+            if (data.deck.length === 0) {
+                if (data.discardPile.length > 1) {
+                    const topNode = data.discardPile.pop();
+                    data.deck = [...data.discardPile].sort(() => Math.random() - 0.5);
+                    data.discardPile = [topNode];
+                } else {
+                    break;
+                }
+            }
+            if (data.deck.length === 0) break;
+
+            const drawnCard = data.deck.pop();
+
+            if (data.gameType === 'ek' && drawnCard && drawnCard.type === 'gatito') {
+                sfx.error(); // explosion
+                const myCards = data.players[myPlayerId].cards;
+                const defuseIdx = myCards.findIndex(c => c && c.type === 'desactivar');
+                if (defuseIdx > -1) {
+                    myCards.splice(defuseIdx, 1);
+                    const pos = Math.floor(Math.random() * data.deck.length);
+                    data.deck.splice(pos, 0, drawnCard);
+                    showMsg = "¡USASTE DESACTIVAR! 🔧";
+                } else {
+                    data.players[myPlayerId].alive = false;
+                    showMsg = "¡EXPLOTASTE! 💣";
+                    break;
+                }
+            } else if (drawnCard) {
+                data.players[myPlayerId].cards.push(drawnCard);
             }
         }
-        const drawnCard = data.deck.pop();
 
-        if (data.gameType === 'ek' && drawnCard.type === 'gatito') {
-            sfx.error(); // explosion
-            const myCards = data.players[myPlayerId].cards;
-            const defuseIdx = myCards.findIndex(c => c.type === 'desactivar');
-            if (defuseIdx > -1) {
-                myCards.splice(defuseIdx, 1);
-                const pos = Math.floor(Math.random() * data.deck.length);
-                data.deck.splice(pos, 0, drawnCard);
-                showMsg = "¡USASTE DESACTIVAR! 🔧";
+        if (data.players[myPlayerId].alive) {
+            if (data.gameType === 'uno') {
+                data.turn = getNextAliveTurn(data.turn, data.direction || 1, data.players);
             } else {
-                data.players[myPlayerId].alive = false;
-                showMsg = "¡EXPLOTASTE! 💣";
-                break;
+                data.activeTurns = (data.activeTurns || 1) - 1;
+                if (data.activeTurns <= 0) {
+                    data.turn = getNextAliveTurn(data.turn, 1, data.players);
+                    data.activeTurns = 1;
+                }
             }
         } else {
-            data.players[myPlayerId].cards.push(drawnCard);
+            data.turn = getNextAliveTurn(data.turn, 1, data.players);
+            data.activeTurns = 1;
+
+            let aliveArr = Object.entries(data.players).filter(([id, p]) => p.joined && p.alive);
+            if (aliveArr.length === 1) data.winner = parseInt(aliveArr[0][0]);
         }
+
+        if (showMsg) showAlert(showMsg);
+
+        await updateDoc(docRef, {
+            deck: data.deck, discardPile: data.discardPile,
+            [`players.${myPlayerId}.cards`]: data.players[myPlayerId].cards,
+            [`players.${myPlayerId}.alive`]: data.players[myPlayerId].alive,
+            turn: data.turn, drawStack: data.drawStack || 0, activeTurns: data.activeTurns || 1,
+            winner: data.winner !== undefined ? data.winner : null
+        });
+    } catch (e) {
+        console.error("Error drawing card", e);
+        showAlert("Error de conexión al robar: " + e.message);
+        document.getElementById('btn-draw').classList.remove('hidden');
     }
-
-    if (data.players[myPlayerId].alive) {
-        if (data.gameType === 'uno') {
-            data.turn = getNextAliveTurn(data.turn, data.direction, data.players);
-        } else {
-            data.activeTurns--;
-            if (data.activeTurns <= 0) {
-                data.turn = getNextAliveTurn(data.turn, 1, data.players);
-                data.activeTurns = 1;
-            }
-        }
-    } else {
-        data.turn = getNextAliveTurn(data.turn, 1, data.players);
-        data.activeTurns = 1;
-
-        let aliveArr = Object.entries(data.players).filter(([id, p]) => p.joined && p.alive);
-        if (aliveArr.length === 1) data.winner = parseInt(aliveArr[0][0]);
-    }
-
-    if (showMsg) showAlert(showMsg);
-
-    await updateDoc(docRef, {
-        deck: data.deck, discardPile: data.discardPile,
-        [`players.${myPlayerId}.cards`]: data.players[myPlayerId].cards,
-        [`players.${myPlayerId}.alive`]: data.players[myPlayerId].alive,
-        turn: data.turn, drawStack: data.drawStack, activeTurns: data.activeTurns,
-        winner: data.winner
-    });
 }
 
 function getNextAliveTurn(current, dir, players) {
@@ -706,10 +728,10 @@ function createDeck(gameType) {
 
 function createCardHTML(cardData, isForHost) {
     const div = document.createElement('div');
-    let classes = `card border-4 border-gray-200 rounded-xl flex flex-col items-center justify-center font-black ${cardData.bgColor} overflow-hidden relative`;
+    let classes = `card border-4 border-gray-200 rounded-xl flex flex-col items-center justify-center font-black ${cardData.bgColor} overflow-hidden`;
 
-    if (isForHost) classes += ` w-32 h-48 text-4xl shadow-2xl`;
-    else classes += ` w-24 h-36 text-2xl shadow-md shrink-0`;
+    if (isForHost) classes += ` absolute top-0 left-0 w-32 h-48 text-4xl shadow-2xl`;
+    else classes += ` relative w-24 h-36 text-2xl shadow-md shrink-0`;
 
     classes += cardData.textColor ? ` ${cardData.textColor}` : ` text-white`;
     div.className = classes;
