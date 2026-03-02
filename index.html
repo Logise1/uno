@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mesa de Cartas Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-gray-900 text-white overflow-hidden touch-manipulation select-none font-sans">
+
+    <!-- CONTENEDOR APP -->
+    <div id="app" class="w-screen h-screen relative">
+        <!-- PANTALLA DE CARGA -->
+        <div id="loading-screen" class="absolute inset-0 flex items-center justify-center bg-gray-900 z-[100]">
+            <div class="flex flex-col items-center">
+                <i class="fa-solid fa-spinner fa-spin text-5xl text-blue-500 mb-4"></i>
+                <h1 class="text-4xl font-bold animate-pulse text-blue-400">Conectando...</h1>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VISTA DEL ANFITRIÓN (TABLET EN EL CENTRO)  -->
+        <!-- ========================================== -->
+        <div id="host-view" class="hidden absolute inset-0 host-bg">
+            <div id="table-qrs" class="absolute inset-0 pointer-events-none transition-opacity duration-500">
+                <!-- J3 (Arriba) -->
+                <div id="qr-container-3"
+                    class="absolute top-8 left-1/2 -translate-x-1/2 rotate-180 flex flex-col items-center pointer-events-auto">
+                    <div id="qr-3" class="bg-white p-2 rounded-xl shadow-[0_0_30px_rgba(255,255,255,0.2)]"></div>
+                    <p id="name-3"
+                        class="mt-2 font-bold text-xl text-white bg-black/60 px-4 py-1 rounded-full backdrop-blur-sm">
+                        Esperando...</p>
+                </div>
+                <!-- J1 (Abajo) -->
+                <div id="qr-container-1"
+                    class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-auto">
+                    <div id="qr-1" class="bg-white p-2 rounded-xl shadow-[0_0_30px_rgba(255,255,255,0.2)]"></div>
+                    <p id="name-1"
+                        class="mt-2 font-bold text-xl text-white bg-black/60 px-4 py-1 rounded-full backdrop-blur-sm">
+                        Esperando...</p>
+                </div>
+                <!-- J2 (Izq) -->
+                <div id="qr-container-2"
+                    class="absolute left-8 top-1/2 -translate-y-1/2 rotate-90 flex flex-col items-center pointer-events-auto">
+                    <div id="qr-2" class="bg-white p-2 rounded-xl shadow-[0_0_30px_rgba(255,255,255,0.2)]"></div>
+                    <p id="name-2"
+                        class="mt-2 font-bold text-xl text-white bg-black/60 px-4 py-1 rounded-full backdrop-blur-sm">
+                        Esperando...</p>
+                </div>
+                <!-- J4 (Der) -->
+                <div id="qr-container-4"
+                    class="absolute right-8 top-1/2 -translate-y-1/2 -rotate-90 flex flex-col items-center pointer-events-auto">
+                    <div id="qr-4" class="bg-white p-2 rounded-xl shadow-[0_0_30px_rgba(255,255,255,0.2)]"></div>
+                    <p id="name-4"
+                        class="mt-2 font-bold text-xl text-white bg-black/60 px-4 py-1 rounded-full backdrop-blur-sm">
+                        Esperando...</p>
+                </div>
+            </div>
+
+            <!-- Centro de la Mesa -->
+            <div id="table-center"
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full border-[10px] border-gray-800 shadow-[0_0_60px_rgba(0,0,0,0.8)] flex flex-col items-center justify-center p-4 transition-all duration-500 bg-glass text-center">
+
+                <!-- Menú Inicio -->
+                <div id="host-setup-ui" class="w-full">
+                    <h2
+                        class="text-3xl font-black mb-4 text-white drop-shadow-[0_2px_5px_rgba(0,0,0,1)] uppercase tracking-wider">
+                        Mesa VIP</h2>
+
+                    <select id="game-select"
+                        class="w-full bg-gray-800 text-white text-xl p-3 rounded-xl mb-4 border-2 border-gray-600 outline-none shadow-inner">
+                        <option value="uno">UNO Avanzado</option>
+                        <option value="ek">Exploding Kittens</option>
+                    </select>
+
+                    <label
+                        class="flex justify-center items-center gap-2 bg-gray-800 p-3 rounded-xl mb-6 border-2 border-gray-600 cursor-pointer hover:bg-gray-700 transition">
+                        <input type="checkbox" id="strict-view-check" checked
+                            class="w-5 h-5 text-blue-600 rounded bg-gray-900 border-gray-600 focus:ring-blue-600 focus:ring-2">
+                        <span class="text-gray-300 text-sm font-bold leading-tight">Modo Concentración<br>(Todos miran
+                            al centro)</span>
+                    </label>
+
+                    <button id="btn-start-game"
+                        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-2xl font-black py-4 rounded-xl shadow-[0_10px_20px_rgba(59,130,246,0.5)] transform transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale"
+                        disabled>
+                        ¡REPARTIR!
+                    </button>
+                    <p id="host-status-msg"
+                        class="text-sm font-bold text-blue-300 mt-4 h-4 uppercase tracking-widest anim-pulse-fast">
+                        Esperando jugadores...</p>
+                </div>
+
+                <!-- Tablero -->
+                <div id="host-game-ui" class="hidden w-full h-full relative flex flex-col items-center justify-center">
+                    <div id="host-turn-indicator"
+                        class="absolute -top-16 bg-gradient-to-r from-yellow-400 to-yellow-600 text-black font-black px-8 py-3 rounded-full text-2xl shadow-[0_0_20px_rgba(234,179,8,0.7)] z-10 text-center whitespace-nowrap transition-all duration-300 border-2 border-yellow-200 uppercase tracking-wider">
+                        Turno de ...
+                    </div>
+
+                    <!-- Dirección -->
+                    <div id="host-direction"
+                        class="absolute -left-16 text-5xl text-blue-500/50 font-black animate-pulse bg-black/40 px-4 py-2 rounded-full">
+                        ↻</div>
+
+                    <div id="discard-pile" class="relative w-32 h-48 mt-2 rounded-xl flex items-center justify-center">
+                    </div>
+                </div>
+
+                <!-- Victoria -->
+                <div id="host-victory-ui"
+                    class="hidden absolute inset-0 bg-black/95 rounded-full flex flex-col items-center justify-center z-50 p-4 border-4 border-yellow-500 shadow-[0_0_50px_rgba(234,179,8,0.5)]">
+                    <i class="fa-solid fa-trophy text-6xl text-yellow-500 mb-2"></i>
+                    <h2 class="text-3xl font-black text-yellow-400 mb-2">¡GANADOR!</h2>
+                    <p id="host-winner-name"
+                        class="text-2xl font-bold text-white mb-6 bg-yellow-900/50 px-4 py-2 rounded-lg"></p>
+                    <button id="btn-restart"
+                        class="bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-3 rounded-full font-black text-xl hover:scale-105 transition shadow-[0_0_15px_rgba(34,197,94,0.5)]">Jugar
+                        de Nuevo</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VISTA DEL JUGADOR (MÓVIL)                  -->
+        <!-- ========================================== -->
+        <div id="player-view" class="hidden w-full h-full flex flex-col bg-gray-900 overflow-hidden relative">
+
+            <!-- Botón Ocultar/Mostrar (Ojo) -->
+            <button id="btn-toggle-eye"
+                class="absolute top-4 right-4 z-[90] bg-gray-800 border-2 border-gray-600 p-4 rounded-full text-white shadow-xl active:scale-95 transition">
+                <i class="fa-solid fa-eye-slash text-xl" id="eye-icon"></i>
+            </button>
+
+            <!-- Ingreso de Nombre -->
+            <div id="join-ui"
+                class="flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-gray-800 to-gray-900 p-8 text-center relative overflow-hidden">
+                <!-- Decoración -->
+                <div class="absolute inset-0 pointer-events-none opacity-10"
+                    style="background-image: radial-gradient(circle at center, #ffffff 1px, transparent 1px); background-size: 20px 20px;">
+                </div>
+
+                <div class="bg-glass p-8 rounded-3xl shadow-2xl max-w-sm w-full relative z-10 border-t border-white/20">
+                    <div
+                        class="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-[0_0_20px_rgba(37,99,235,0.5)] border-4 border-gray-900">
+                        <i class="fa-solid fa-user-astronaut text-3xl text-white"></i>
+                    </div>
+                    <h1 class="text-3xl font-black mb-6 text-white uppercase tracking-wider">Jugador <span
+                            id="display-player-id" class="text-blue-400"></span></h1>
+                    <input type="text" id="player-name-input" placeholder="Tu apodo aquí..."
+                        class="w-full bg-black/50 border-2 border-gray-600 text-white px-4 py-4 rounded-xl text-xl mb-6 text-center outline-none focus:border-blue-500 focus:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition font-bold"
+                        maxlength="12">
+                    <button id="btn-join"
+                        class="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white text-2xl font-black py-4 rounded-xl shadow-lg transform transition hover:scale-105 active:scale-95 tracking-wide">
+                        ¡ENTRAR! <i class="fa-solid fa-right-to-bracket ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Esperando Inicio -->
+            <div id="wait-ui"
+                class="hidden flex-1 flex flex-col items-center justify-center bg-gray-900 p-8 text-center relative">
+                <div class="w-32 h-32 bg-green-500/20 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                    <i class="fa-solid fa-check text-6xl text-green-500 drop-shadow-[0_0_15px_rgba(34,197,94,0.8)]"></i>
+                </div>
+                <h2 id="wait-name-display" class="text-4xl font-black text-white mb-4">¡Listo!</h2>
+                <p class="text-xl text-gray-400 max-w-xs leading-relaxed">Mira a la pantalla central y espera al
+                    anfitrión.</p>
+            </div>
+
+            <!-- Pantalla de Juego -->
+            <div id="play-ui" class="hidden flex-1 flex flex-col relative">
+
+                <!-- Banners Turno -->
+                <div id="my-turn-banner"
+                    class="w-full bg-gradient-to-r from-yellow-400 to-yellow-600 text-black text-3xl font-black text-center py-4 shadow-[0_10px_20px_rgba(234,179,8,0.3)] transform transition-transform duration-500 -translate-y-full absolute top-0 left-0 z-40 flex flex-col items-center border-b-4 border-yellow-300">
+                    <div><i class="fa-solid fa-bolt"></i> ¡TU TURNO!</div>
+                    <span id="turn-sub-banner"
+                        class="text-sm font-bold bg-black/20 px-4 py-1 rounded-full mt-2 hidden"></span>
+                </div>
+
+                <div id="not-my-turn-banner"
+                    class="w-full bg-gray-800 text-gray-400 text-xl font-bold text-center py-4 shadow-md z-30 relative border-b border-gray-700">
+                    <i class="fa-solid fa-hourglass-half mr-2 animate-spin" style="animation-duration: 3s"></i>
+                    Esperando a <span id="current-turn-name"
+                        class="text-white bg-gray-700 px-3 py-1 rounded-md px-2">...</span>
+                </div>
+
+                <!-- Info central y Botón Robar -->
+                <div
+                    class="flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden bg-[radial-gradient(circle_at_center,_#1f2937_0%,_#111827_100%)]">
+
+                    <!-- Decoración fondo -->
+                    <div class="absolute inset-0 opacity-5"
+                        style="background-image: linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .3) 25%, rgba(255, 255, 255, .3) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .3) 75%, rgba(255, 255, 255, .3) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .3) 25%, rgba(255, 255, 255, .3) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .3) 75%, rgba(255, 255, 255, .3) 76%, transparent 77%, transparent); background-size: 30px 30px;">
+                    </div>
+
+                    <div id="top-card-info"
+                        class="text-center mb-6 transition-all duration-300 z-10 bg-black/40 p-4 rounded-2xl backdrop-blur-sm border border-white/10">
+                        <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3"><i
+                                class="fa-solid fa-down-to-bracket mr-1"></i> Descarte Actual</p>
+                        <div id="mini-top-card"
+                            class="inline-flex w-16 h-24 rounded-lg items-center justify-center relative overflow-hidden transition-all duration-300">
+                        </div>
+                    </div>
+
+                    <button id="btn-draw"
+                        class="hidden bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-5 rounded-full font-black text-2xl shadow-[0_10px_30px_rgba(147,51,234,0.4)] active:scale-95 transition-transform flex items-center gap-3 z-10 border-2 border-purple-400">
+                        <!-- Content handled by JS -->
+                    </button>
+
+                </div>
+
+                <!-- Botón de Colocar -->
+                <div class="absolute bottom-[220px] left-0 w-full flex justify-center z-50 pointer-events-none">
+                    <button id="btn-place"
+                        class="hidden pointer-events-auto bg-gradient-to-r from-green-500 to-emerald-500 text-white px-10 py-5 rounded-full font-black text-3xl shadow-[0_15px_35px_rgba(34,197,94,0.6)] transform transition hover:scale-105 active:scale-95 border-4 border-green-200 anim-pulse-fast">
+                        ¡JUGAR CARTA! <i class="fa-solid fa-play ml-2"></i>
+                    </button>
+                </div>
+
+                <!-- Overlay de Mostrar Cartas (Aparece estático encima de la mano cuando toca y están ocultas) -->
+                <div id="show-hand-overlay"
+                    class="absolute inset-0 top-[auto] bottom-0 h-64 z-[60] bg-gray-900/90 flex flex-col items-center justify-center p-4 backdrop-blur-md hidden border-t border-gray-700">
+                    <div class="w-full max-w-xs flex flex-col items-center">
+                        <div class="text-5xl mb-4 text-blue-400 animate-bounce"><i
+                                class="fa-solid fa-hand-sparkles"></i></div>
+                        <h2
+                            class="text-2xl font-black mb-6 text-white text-center drop-shadow-lg leading-tight uppercase tracking-wider">
+                            ¡Es tu turno!</h2>
+                        <button id="btn-show-cards"
+                            class="w-full bg-gradient-to-r from-blue-600 to-blue-400 text-white px-8 py-4 rounded-xl font-black text-2xl shadow-[0_0_30px_rgba(59,130,246,0.6)] active:scale-95 transition-transform flex items-center justify-center gap-3 border-2 border-blue-200">
+                            <i class="fa-solid fa-eye"></i> VER CARTAS
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mano del Jugador -->
+                <div
+                    class="bg-gray-800 border-t-2 border-gray-600 pt-4 pb-8 overflow-hidden relative shadow-[0_-10px_20px_rgba(0,0,0,0.5)] z-20">
+                    <div class="flex justify-between items-center mb-2 px-4">
+                        <p class="text-sm text-gray-300 font-bold uppercase tracking-widest"><i
+                                class="fa-solid fa-layer-group text-gray-500 mr-1"></i> Mi Mano (<span id="card-count"
+                                class="text-white">0</span>)</p>
+                        <p id="ek-turns-indicator"
+                            class="text-xs bg-red-900/50 text-red-400 font-bold uppercase hidden px-3 py-1 rounded-full border border-red-800">
+                            <i class="fa-solid fa-forward mr-1"></i> Turnos extra: <span id="ek-turns-count"
+                                class="text-white">0</span></p>
+                    </div>
+                    <!-- padding horizontal extra para que las cartas se vean bien centradas o scrollearles -->
+                    <div id="player-hand"
+                        class="hand-container overflow-x-auto overflow-y-visible w-full snap-x pb-4 px-6 md:justify-center">
+                        <!-- Cartas -->
+                    </div>
+                </div>
+
+                <!-- Modales del Jugador -->
+
+                <!-- Selector de Color (UNO) -->
+                <div id="color-picker-ui"
+                    class="hidden absolute inset-0 bg-black/95 z-[100] flex flex-col items-center justify-center p-6 backdrop-blur-xl">
+                    <h2
+                        class="text-4xl font-black text-white mb-10 text-center drop-shadow-[0_0_10px_rgba(255,255,255,0.5)] uppercase tracking-widest">
+                        <i class="fa-solid fa-palette mr-2"></i> Elige Color</h2>
+                    <div class="grid grid-cols-2 gap-6 w-full max-w-[300px]">
+                        <button onclick="selectColor('bg-red-500')"
+                            class="bg-red-500 h-32 rounded-2xl shadow-[0_10px_30px_rgba(239,68,68,0.5)] border-4 border-white active:scale-90 transition hover:scale-105 relative overflow-hidden">
+                            <i class="fa-solid fa-droplet text-4xl text-white/30 absolute bottom-2 right-2"></i>
+                        </button>
+                        <button onclick="selectColor('bg-blue-500')"
+                            class="bg-blue-500 h-32 rounded-2xl shadow-[0_10px_30px_rgba(59,130,246,0.5)] border-4 border-white active:scale-90 transition hover:scale-105 relative overflow-hidden">
+                            <i class="fa-solid fa-droplet text-4xl text-white/30 absolute bottom-2 right-2"></i>
+                        </button>
+                        <button onclick="selectColor('bg-green-500')"
+                            class="bg-green-500 h-32 rounded-2xl shadow-[0_10px_30px_rgba(34,197,94,0.5)] border-4 border-white active:scale-90 transition hover:scale-105 relative overflow-hidden">
+                            <i class="fa-solid fa-droplet text-4xl text-white/30 absolute bottom-2 right-2"></i>
+                        </button>
+                        <button onclick="selectColor('bg-yellow-500')"
+                            class="bg-yellow-500 h-32 rounded-2xl shadow-[0_10px_30px_rgba(234,179,8,0.5)] border-4 border-white active:scale-90 transition hover:scale-105 relative overflow-hidden">
+                            <i class="fa-solid fa-droplet text-4xl text-white/30 absolute bottom-2 right-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Alertas Rápidas -->
+                <div id="player-alert"
+                    class="hidden absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[110] pointer-events-none w-full px-6">
+                    <div id="player-alert-msg"
+                        class="text-3xl font-black text-white text-center drop-shadow-[0_5px_15px_rgba(0,0,0,1)] bg-black/80 p-6 rounded-2xl border-2 border-white/20 animate-bounce">
+                        ¡Mensaje!
+                    </div>
+                </div>
+
+                <!-- Pantalla Fin (Móvil) -->
+                <div id="player-end-ui"
+                    class="hidden absolute inset-0 bg-black/95 flex flex-col items-center justify-center z-[120] backdrop-blur-xl p-6">
+                    <h1 id="player-end-title" class="text-6xl font-black mb-6 text-center drop-shadow-2xl"></h1>
+                    <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 text-center max-w-xs shadow-2xl">
+                        <i class="fa-solid fa-desktop text-4xl text-blue-400 mb-4 animate-pulse"></i>
+                        <p class="text-xl font-bold text-gray-300">Mira el resultado en la pantalla central</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Script separado -->
+    <script type="module" src="./script.js"></script>
+</body>
+
+</html>
