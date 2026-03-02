@@ -414,20 +414,23 @@ function updatePlayerUI() {
         } else { ekInd.classList.add('hidden'); }
     }
 
+    const opponentsContainer = document.getElementById('opponents-container');
+
     if (isMyTurn) {
         turnBanner.classList.remove('-translate-y-full');
         notMyTurn.classList.add('hidden');
         btnDraw.classList.remove('hidden');
+        if (opponentsContainer) opponentsContainer.style.marginTop = turnBanner.offsetHeight + "px";
 
         if (roomData.gameType === 'uno' && roomData.drawStack > 0) {
             subBanner.classList.remove('hidden');
             subBanner.innerText = `¡Acumulado: +${roomData.drawStack}!`;
             btnDraw.innerHTML = `<i class="fa-solid fa-layer-group"></i> Robar ${roomData.drawStack} y Pasar`;
-            btnDraw.className = "bg-red-600 text-white px-8 py-4 rounded-full font-bold text-xl shadow-[0_0_20px_rgba(220,38,38,0.8)] active:scale-95 transition-transform flex items-center gap-2 animate-pulse";
+            btnDraw.className = "bg-red-600 text-white px-8 py-4 rounded-full font-bold text-xl shadow-[0_0_20px_rgba(220,38,38,0.8)] active:scale-95 transition-transform flex items-center gap-2 animate-pulse relative z-[150] cursor-pointer pointer-events-auto border-2 border-red-400";
         } else {
             subBanner.classList.add('hidden');
             btnDraw.innerHTML = roomData.gameType === 'ek' ? `<i class="fa-solid fa-forward"></i> Terminar (Robar)` : `<i class="fa-solid fa-hand-holding"></i> Robar Carta`;
-            btnDraw.className = "bg-purple-600 text-white px-8 py-4 rounded-full font-bold text-xl shadow-[0_0_20px_rgba(147,51,234,0.5)] active:scale-95 transition-transform flex items-center gap-2";
+            btnDraw.className = "bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-5 rounded-full font-black text-2xl shadow-[0_10px_30px_rgba(147,51,234,0.4)] active:scale-95 transition-transform flex items-center gap-3 relative z-[150] cursor-pointer pointer-events-auto border-2 border-purple-400";
         }
 
         if (selectedCardData && isValidPlay(selectedCardData, topCard, roomData) && isHandVisible) {
@@ -441,6 +444,50 @@ function updatePlayerUI() {
         document.getElementById('current-turn-name').innerText = roomData.players[roomData.turn].name;
         btnDraw.classList.add('hidden');
         btnPlace.classList.add('hidden');
+        if (opponentsContainer) opponentsContainer.style.marginTop = "0px";
+    }
+
+    if (opponentsContainer) {
+        opponentsContainer.innerHTML = '';
+        for (let i = 1; i <= 4; i++) {
+            const p = roomData.players[i];
+            if (i !== myPlayerId && p.joined) {
+                const oppDiv = document.createElement('div');
+                oppDiv.className = `flex flex-col items-center mx-2 transition-transform ${!p.alive ? 'opacity-40 grayscale' : ''}`;
+
+                const nameEl = document.createElement('span');
+                nameEl.className = `text-[10px] font-black tracking-wider uppercase mb-1 px-2 py-0.5 rounded-full ${roomData.turn === i ? 'bg-yellow-500 text-black shadow-[0_0_10px_rgba(234,179,8,1)] animate-pulse' : 'text-gray-300 bg-black/50 border border-gray-600'}`;
+                nameEl.innerHTML = p.name || `J${i}`;
+
+                const cardsDiv = document.createElement('div');
+                cardsDiv.className = 'flex -space-x-3 items-center mt-1';
+                const numCards = p.cards ? p.cards.length : 0;
+
+                if (numCards > 0) {
+                    const maxDisplay = 10;
+                    const displayCount = Math.min(numCards, maxDisplay);
+
+                    for (let c = 0; c < displayCount; c++) {
+                        const miniCard = document.createElement('div');
+                        miniCard.className = `w-5 h-8 rounded-sm border border-white/30 shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex-shrink-0 ${roomData.gameType === 'ek' ? 'bg-gray-800' : 'bg-red-600'}`;
+                        const rot = (Math.random() * 8) - 4;
+                        miniCard.style.transform = `rotate(${rot}deg)`;
+                        cardsDiv.appendChild(miniCard);
+                    }
+
+                    const countBadge = document.createElement('div');
+                    countBadge.className = 'w-5 h-5 bg-black text-white text-[10px] font-bold rounded-full flex items-center justify-center relative -left-2 z-10 border border-gray-500 shadow-md';
+                    countBadge.innerText = numCards;
+                    cardsDiv.appendChild(countBadge);
+                } else if (p.alive) {
+                    cardsDiv.innerHTML = '<span class="text-[10px] text-gray-500 font-bold border border-gray-700 bg-gray-800 px-1 rounded">0</span>';
+                }
+
+                oppDiv.appendChild(nameEl);
+                oppDiv.appendChild(cardsDiv);
+                opponentsContainer.appendChild(oppDiv);
+            }
+        }
     }
 
     if (roomData.winner && document.getElementById('player-end-ui').classList.contains('hidden')) {
