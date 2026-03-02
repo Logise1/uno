@@ -216,14 +216,6 @@
 
                 </div>
 
-                <!-- Botón de Colocar -->
-                <div class="absolute bottom-[220px] left-0 w-full flex justify-center z-50 pointer-events-none">
-                    <button id="btn-place"
-                        class="hidden pointer-events-auto bg-gradient-to-r from-green-500 to-emerald-500 text-white px-10 py-5 rounded-full font-black text-3xl shadow-[0_15px_35px_rgba(34,197,94,0.6)] transform transition hover:scale-105 active:scale-95 border-4 border-green-200 anim-pulse-fast">
-                        ¡JUGAR CARTA! <i class="fa-solid fa-play ml-2"></i>
-                    </button>
-                </div>
-
                 <!-- Overlay de Mostrar Cartas (Aparece estático encima de la mano cuando toca y están ocultas) -->
                 <div id="show-hand-overlay"
                     class="absolute inset-0 top-[auto] bottom-0 h-64 z-[60] bg-gray-900/90 flex flex-col items-center justify-center p-4 backdrop-blur-md hidden border-t border-gray-700">
@@ -242,7 +234,16 @@
 
                 <!-- Mano del Jugador -->
                 <div
-                    class="bg-gray-800 border-t-2 border-gray-600 pt-4 pb-8 overflow-hidden relative shadow-[0_-10px_20px_rgba(0,0,0,0.5)] z-20">
+                    class="bg-gray-800 border-t-2 border-gray-600 pt-8 pb-8 overflow-visible relative shadow-[0_-10px_20px_rgba(0,0,0,0.5)] z-20 mt-auto flex-shrink-0">
+
+                    <!-- Botón de Colocar superpuesto a la mano -->
+                    <div class="absolute -top-10 left-0 w-full flex justify-center z-[100] pointer-events-none">
+                        <button id="btn-place"
+                            class="hidden pointer-events-auto bg-gradient-to-r from-green-500 to-emerald-500 text-white px-10 py-4 rounded-full font-black text-2xl shadow-[0_15px_35px_rgba(34,197,94,0.6)] transform transition hover:scale-105 active:scale-95 border-4 border-green-200 anim-pulse-fast">
+                            ¡JUGAR CARTA! <i class="fa-solid fa-play ml-2"></i>
+                        </button>
+                    </div>
+
                     <div class="flex justify-between items-center mb-2 px-4">
                         <p class="text-sm text-gray-300 font-bold uppercase tracking-widest"><i
                                 class="fa-solid fa-layer-group text-gray-500 mr-1"></i> Mi Mano (<span id="card-count"
@@ -250,7 +251,8 @@
                         <p id="ek-turns-indicator"
                             class="text-xs bg-red-900/50 text-red-400 font-bold uppercase hidden px-3 py-1 rounded-full border border-red-800">
                             <i class="fa-solid fa-forward mr-1"></i> Turnos extra: <span id="ek-turns-count"
-                                class="text-white">0</span></p>
+                                class="text-white">0</span>
+                        </p>
                     </div>
                     <!-- padding horizontal extra para que las cartas se vean bien centradas o scrollearles -->
                     <div id="player-hand"
@@ -266,7 +268,8 @@
                     class="hidden absolute inset-0 bg-black/95 z-[100] flex flex-col items-center justify-center p-6 backdrop-blur-xl">
                     <h2
                         class="text-4xl font-black text-white mb-10 text-center drop-shadow-[0_0_10px_rgba(255,255,255,0.5)] uppercase tracking-widest">
-                        <i class="fa-solid fa-palette mr-2"></i> Elige Color</h2>
+                        <i class="fa-solid fa-palette mr-2"></i> Elige Color
+                    </h2>
                     <div class="grid grid-cols-2 gap-6 w-full max-w-[300px]">
                         <button onclick="selectColor('bg-red-500')"
                             class="bg-red-500 h-32 rounded-2xl shadow-[0_10px_30px_rgba(239,68,68,0.5)] border-4 border-white active:scale-90 transition hover:scale-105 relative overflow-hidden">

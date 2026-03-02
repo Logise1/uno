@@ -144,15 +144,23 @@ function updateHostUI() {
         if (p.joined) {
             joinedCount++;
             const nameLabel = document.getElementById(`name-${i}`);
+
+            // Remplazar QR con visto bueno
             if (nameLabel && nameLabel.innerText === 'Esperando...') {
                 document.getElementById(`qr-${i}`).innerHTML = `<div class="w-28 h-28 bg-green-500 rounded-xl flex items-center justify-center"><i class="fa-solid fa-check text-5xl text-white"></i></div>`;
-                nameLabel.innerText = p.name || `Jugador ${i}`;
-                nameLabel.className = "mt-2 font-black text-2xl text-green-400 bg-black/80 px-4 py-1 rounded-full shadow-lg";
                 sfx.deal(); // Ding a player joined
             }
+
+            // Actualizar vista dependiendo de quien tenga el turno
             if (!p.alive && roomData.status === 'playing') {
                 nameLabel.innerHTML = `<i class="fa-solid fa-skull"></i> ${p.name}`;
                 nameLabel.className = "mt-2 font-black text-xl text-red-500 bg-black/80 px-4 py-1 rounded-full";
+            } else if (roomData.status === 'playing' && roomData.turn === i) {
+                nameLabel.innerHTML = `<i class="fa-solid fa-star text-yellow-300"></i> ${p.name} <i class="fa-solid fa-star text-yellow-300"></i>`;
+                nameLabel.className = "mt-2 font-black text-3xl text-white bg-yellow-600/90 px-6 py-2 rounded-full shadow-[0_0_40px_rgba(234,179,8,1)] border-4 border-yellow-300 animate-pulse";
+            } else {
+                nameLabel.innerHTML = p.name || `Jugador ${i}`;
+                nameLabel.className = "mt-2 font-black text-2xl text-green-400 bg-black/80 px-4 py-1 rounded-full shadow-lg";
             }
         }
     }
@@ -590,7 +598,15 @@ async function playerDrawCard() {
     let showMsg = null;
 
     for (let i = 0; i < amountToDraw; i++) {
-        if (data.deck.length === 0) break;
+        if (data.deck.length === 0) {
+            if (data.discardPile.length > 1) {
+                const topNode = data.discardPile.pop();
+                data.deck = [...data.discardPile].sort(() => Math.random() - 0.5);
+                data.discardPile = [topNode];
+            } else {
+                break;
+            }
+        }
         const drawnCard = data.deck.pop();
 
         if (data.gameType === 'ek' && drawnCard.type === 'gatito') {
